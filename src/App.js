@@ -7,27 +7,35 @@ import getConfig from './config'
 const { networkId } = getConfig(process.env.NODE_ENV || 'development')
 
 export default function App() {
-  // use React Hooks to store greeting in component state
-  const [greeting, setGreeting] = React.useState()
+  const [isValidApprover, setIsValidApprover] = React.useState();
 
-  // when the user has not yet interacted with the form, disable the button
-  const [buttonDisabled, setButtonDisabled] = React.useState(true)
+  const [missions, setMissions] = React.useState([{id: 1, approval1: false, approval2: true},
+    {id: 2, approval1: true, approval2: true}]);
 
   // after submitting the form, we want to show Notification
   const [showNotification, setShowNotification] = React.useState(false)
 
-  // The useEffect hook can be used to fire side-effects during render
-  // Learn more: https://reactjs.org/docs/hooks-intro.html
+
+  // when the user has not yet interacted with the form, disable the button
+  const [buttonDisabled, setButtonDisabled] = React.useState(true)
+
+  const approveMission = (missionId) => {
+    // TODO:
+    // Call contract and refresh missions list
+  }
+
   React.useEffect(
     () => {
       // in this case, we only care to query the contract when signed in
       if (window.walletConnection.isSignedIn()) {
 
-        // window.contract is set by initContract in index.js
-        window.contract.getGreeting({ accountId: window.accountId })
-          .then(greetingFromContract => {
-            setGreeting(greetingFromContract)
-          })
+        setIsValidApprover(false);
+
+        // TODO: once contract ready
+        // window.contract.isValidApprover({ accountId: window.accountId })
+        //   .then(isValidApprover => {
+        //     setIsValidApprover(isValidApprover)
+        //   })
       }
     },
 
@@ -41,19 +49,9 @@ export default function App() {
   if (!window.walletConnection.isSignedIn()) {
     return (
       <main>
-        <h1>Welcome to NEAR!</h1>
+        <h1>Rocket Approval 🚀</h1>
         <p>
-          To make use of the NEAR blockchain, you need to sign in. The button
-          below will sign you in using NEAR Wallet.
-        </p>
-        <p>
-          By default, when your app runs in "development" mode, it connects
-          to a test network ("testnet") wallet. This works just like the main
-          network ("mainnet") wallet, but the NEAR Tokens on testnet aren't
-          convertible to other currencies – they're just for testing!
-        </p>
-        <p>
-          Go ahead and click the button below to try it out:
+          Only valid approvers can approve a rocket before launch.
         </p>
         <p style={{ textAlign: 'center', marginTop: '2.5em' }}>
           <button onClick={login}>Sign in</button>
@@ -63,43 +61,38 @@ export default function App() {
   }
 
   return (
-    // use React Fragment, <>, to avoid wrapping elements in unnecessary divs
     <>
       <button className="link" style={{ float: 'right' }} onClick={logout}>
         Sign out
       </button>
       <main>
         <h1>
-          <label
-            htmlFor="greeting"
-            style={{
-              color: 'var(--secondary)',
-              borderBottom: '2px solid var(--secondary)'
-            }}
-          >
-            {greeting}
-          </label>
-          {' '/* React trims whitespace around tags; insert literal space character when needed */}
-          {window.accountId}!
+          Logged as {window.accountId}:
         </h1>
+        <p>
+          Only 2 eligible users can approve new space missions. If you are not an eligible user,
+          you can still create a new space mission which will need to be approved by the eligible approvers.
+        </p>
+        <p>
+          Your roles:
+        </p>
+            <ul>
+              <li>✅ You can create mission</li>
+              <li>{isValidApprover ? '✅ Can approve missions ' : `❌ You can't approve missions`}</li>
+            </ul>
         <form onSubmit={async event => {
           event.preventDefault()
-
-          // get elements from the form using their id attribute
-          const { fieldset, greeting } = event.target.elements
-
-          // hold onto new user-entered value from React's SynthenticEvent for use after `await` call
-          const newGreeting = greeting.value
 
           // disable the form while the value gets updated on-chain
           fieldset.disabled = true
 
           try {
             // make an update call to the smart contract
-            await window.contract.setGreeting({
-              // pass the value that the user entered in the greeting field
-              message: newGreeting
-            })
+            // TODO:
+            // await window.contract.authoriseMission({
+            //   // pass the value that the user entered in the greeting field
+            //   missionId: 5
+            // })
           } catch (e) {
             alert(
               'Something went wrong! ' +
@@ -111,9 +104,6 @@ export default function App() {
             // re-enable the form, whether the call succeeded or failed
             fieldset.disabled = false
           }
-
-          // update local `greeting` variable to match persisted value
-          setGreeting(newGreeting)
 
           // show Notification
           setShowNotification(true)
@@ -133,41 +123,36 @@ export default function App() {
                 marginBottom: '0.5em'
               }}
             >
-              Change greeting
+              Create new mission
             </label>
             <div style={{ display: 'flex' }}>
               <input
                 autoComplete="off"
-                defaultValue={greeting}
+                placeholder="Mission name"
                 id="greeting"
-                onChange={e => setButtonDisabled(e.target.value === greeting)}
+                onChange={e => setButtonDisabled(false)}
                 style={{ flex: 1 }}
               />
               <button
                 disabled={buttonDisabled}
                 style={{ borderRadius: '0 5px 5px 0' }}
               >
-                Save
+                Create
               </button>
             </div>
           </fieldset>
         </form>
         <p>
-          Look at that! A Hello World app! This greeting is stored on the NEAR blockchain. Check it out:
+          Available missions:
         </p>
-        <ol>
-          <li>
-            Look in <code>src/App.js</code> and <code>src/utils.js</code> – you'll see <code>getGreeting</code> and <code>setGreeting</code> being called on <code>contract</code>. What's this?
-          </li>
-          <li>
-            Ultimately, this <code>contract</code> code is defined in <code>assembly/main.ts</code> – this is the source code for your <a target="_blank" rel="noreferrer" href="https://docs.near.org/docs/roles/developer/contracts/intro">smart contract</a>.</li>
-          <li>
-            When you run <code>yarn dev</code>, the code in <code>assembly/main.ts</code> gets deployed to the NEAR testnet. You can see how this happens by looking in <code>package.json</code> at the <code>scripts</code> section to find the <code>dev</code> command.</li>
-        </ol>
-        <hr />
-        <p>
-          To keep learning, check out <a target="_blank" rel="noreferrer" href="https://docs.near.org">the NEAR docs</a> or look through some <a target="_blank" rel="noreferrer" href="https://examples.near.org">example apps</a>.
-        </p>
+          {missions.map((mission) => (
+            <div key={mission.id}>
+              <h5>ID: {mission.id}</h5>
+              <p>Approval 1: {mission.approval1 ? '✅' : '❌'}</p>
+              <p>Approval 2: {mission.approval2 ? '✅' : '❌'}</p>
+              {(mission.approval1 && mission.approval2) ? <strong>Ready for launch 🚀</strong> : (isValidApprover && <button onClick={() => {approveMission(mission.id)}} >Approve</button>)}
+            </div>
+          ))}
       </main>
       {showNotification && <Notification />}
     </>
